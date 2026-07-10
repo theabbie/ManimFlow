@@ -1,0 +1,8 @@
+libcairo2-dev
+libpango1.0-dev
+ffmpeg
+texlive-latex-base
+texlive-latex-extra
+texlive-fonts-recommended
+texlive-plain-generic
+dvisvgm
