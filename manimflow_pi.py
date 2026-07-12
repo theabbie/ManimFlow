@@ -167,6 +167,7 @@ def write_project_files(workspace, prompt, plan, require_docs):
     (workspace / "AGENTS.md").write_text(
         "You are an autonomous coding agent building a Manim animation.\n"
         "Read plan.md fully before editing and work without asking questions.\n"
+        "The current working directory is already the project root. Write docs_consulted.md, helper modules, scene.py, and media directly here. Never create or write into a manim_output/ or project/ subdirectory.\n"
         + docs
         + "Create helper modules first and scene.py last.\n"
         "Every Python file must start with: from manim import *\n"
@@ -246,6 +247,24 @@ def newest_video(workspace, minimum_duration=0):
         and video_duration(p) >= minimum_duration
     ]
     return max(videos, key=lambda p: p.stat().st_mtime) if videos else None
+
+
+def normalize_nested_workspace(workspace):
+    """Recover when an agent mistakenly creates workspace/manim_output/*."""
+    nested = workspace / "manim_output"
+    if (workspace / "scene.py").is_file() or not (nested / "scene.py").is_file():
+        return False
+    for child in nested.iterdir():
+        destination = workspace / child.name
+        if destination.exists():
+            continue
+        shutil.move(str(child), str(destination))
+    try:
+        nested.rmdir()
+    except OSError:
+        pass
+    print("Normalized accidental nested manim_output/ workspace.", flush=True)
+    return True
 
 
 def canonical_doc_path(value, workspace):
@@ -407,6 +426,7 @@ def run_pi(args):
                 print(update, flush=True)
         code = process.wait()
         print(f"Pi attempt {attempt} exit code: {code}", flush=True)
+        normalize_nested_workspace(workspace)
         video = newest_video(workspace, required_duration)
         if video:
             break
